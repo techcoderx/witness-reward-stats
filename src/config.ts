@@ -3,11 +3,11 @@ import * as dotenv from 'dotenv'
 
 dotenv.config()
 const config = yargs(process.argv)
-    .env('HAFAPP')
+    .env('WITSTATS')
     .options({
         postgresUrl: {
             type: 'string',
-            default: 'postgres://username:password@127.0.0.1:5432/block_log'
+            default: 'postgres://witstats_owner@127.0.0.1:5432/block_log'
         },
         logLevel: {
             type: 'string',

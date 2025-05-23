@@ -2,11 +2,10 @@ import db from './db.js'
 import schema from './schema.js'
 import context from './context.js'
 import logger from './logger.js'
-import processor from './processor.js'
 import { APP_CONTEXT, SCHEMA_NAME } from './constants.js'
 
 const MASSIVE_SYNC_THRESHOLD = 100
-const MASSIVE_SYNC_BATCH = 1000
+const MASSIVE_SYNC_BATCH = 100000
 
 const sync = {
     terminating: false,
@@ -49,20 +48,13 @@ const sync = {
         let start = new Date().getTime()
         await db.client.query('START TRANSACTION;')
         await db.client.query('SELECT hive.app_state_providers_update($1,$2,$3);',[firstBlock,lastBlock,APP_CONTEXT])
-        let blocks = await db.client.query(`SELECT * FROM ${SCHEMA_NAME}.enum_block($1,$2);`,[firstBlock,lastBlock])
-        let ops = await db.client.query(`SELECT * FROM ${SCHEMA_NAME}.enum_op($1,$2);`,[firstBlock,lastBlock])
-        let count = 0
-        for (let op in ops.rows) {
-            let processed = await processor.process(ops.rows[op], blocks.rows[ops.rows[op].block_num-firstBlock].created_at)
-            if (processed)
-                count++
-        }
+        await db.client.query(`SELECT ${SCHEMA_NAME}.process_range($1,$2);`,[firstBlock,lastBlock])
         await db.client.query(`UPDATE ${SCHEMA_NAME}.state SET last_processed_block=$1;`,[lastBlock])
         await db.client.query(`SELECT hive.app_set_current_block_num($1,$2);`,[APP_CONTEXT,lastBlock])
         await db.client.query('COMMIT;')
         let timeTaken = (new Date().getTime()-start)/1000
         logger.debug('Commited ['+firstBlock+','+lastBlock+'] successfully')
-        logger.info('Massive Sync - Block #'+firstBlock+' to #'+lastBlock+' / '+targetBlock+' - '+count+' ops - '+((lastBlock-firstBlock)/timeTaken).toFixed(3)+'b/s, '+(count/timeTaken).toFixed(3)+'op/s')
+        logger.info('Massive Sync - Block #'+firstBlock+' to #'+lastBlock+' / '+targetBlock+' - '+((lastBlock-firstBlock)/timeTaken).toFixed(3)+'b/s')
         if (lastBlock >= targetBlock)
             sync.postMassive(targetBlock)
         else
@@ -92,18 +84,11 @@ const sync = {
 
         let start = new Date().getTime()
         await db.client.query('SELECT hive.app_state_providers_update($1,$2,$3);',[nextBlock,nextBlock,APP_CONTEXT])
-        let blocks = await db.client.query(`SELECT * FROM ${SCHEMA_NAME}.enum_block($1,$2);`,[nextBlock,nextBlock])
-        let ops = await db.client.query(`SELECT * FROM ${SCHEMA_NAME}.enum_op($1,$2);`,[nextBlock,nextBlock])
-        let count = 0
-        for (let op in ops.rows) {
-            let processed = await processor.process(ops.rows[op], blocks.rows[0].created_at)
-            if (processed)
-                count++
-        }
+        await db.client.query(`SELECT ${SCHEMA_NAME}.process_range($1,$2);`,[nextBlock,nextBlock])
         await db.client.query(`UPDATE ${SCHEMA_NAME}.state SET last_processed_block=$1;`,[nextBlock])
         await db.client.query('COMMIT;')
         let timeTakenMs = new Date().getTime()-start
-        logger.info('Live Sync - Block #'+nextBlock+' - '+count+' ops - '+timeTakenMs+'ms')
+        logger.info('Live Sync - Block #'+nextBlock+' - '+timeTakenMs+'ms')
         sync.live()
     },
     close: async (): Promise<void> => {

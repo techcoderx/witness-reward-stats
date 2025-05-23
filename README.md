@@ -12,7 +12,7 @@ Replace every instance of `myhaf_app` with your actual HAF app name in:
 * [.env.example](https://github.com/techcoderx/typescript-haf-app-template/blob/main/.env.example)
 * This README file
 
-Replace every instance of `myhaf_api` with your actual HAF app API schema name in:
+Replace every instance of `witstats_api` with your actual HAF app API schema name in:
 * [src/sql/create_apis.sql](https://github.com/techcoderx/typescript-haf-app-template/blob/main/src/sql/create_apis.sql)
 * [src/sql/drop_db.sql](https://github.com/techcoderx/typescript-haf-app-template/blob/main/src/sql/drop_db.sql)
 * [src/server.ts](https://github.com/techcoderx/typescript-haf-app-template/blob/main/src/server.ts)
@@ -116,9 +116,4 @@ npm start
 ## Start PostgREST server
 ```bash
 ./scripts/postgrest_start.sh postgres://myhaf_user:<myhaf_user_password>@localhost:5432/block_log <server_port>
-```
-
-## Start Express server
-```bash
-npm run server
 ```
