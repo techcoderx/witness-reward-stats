@@ -4,7 +4,7 @@ set -e
 # Setup a trap to kill potentially pending healthcheck SQL query at script exit
 trap 'trap - 2 15 && kill -- -$$' 2 15
 
-postgres_user=${HEALTHCHECK_POSTGRES_USER:-"vsc_owner"}
+postgres_user=${HEALTHCHECK_POSTGRES_USER:-"witstats_owner"}
 postgres_host=${HEALTHCHECK_POSTGRES_HOST:-"haf"}
 postgres_port=${HEALTHCHECK_POSTGRES_PORT:-5432}
 POSTGRES_ACCESS=${HEALTHCHECK_POSTGRES_URL:-"postgresql://$postgres_user@$postgres_host:$postgres_port/haf_block_log"}
