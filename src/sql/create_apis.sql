@@ -6,7 +6,6 @@ GRANT USAGE ON SCHEMA witstats_api TO witstats_user;
 GRANT USAGE ON SCHEMA witstats_app TO witstats_user;
 GRANT SELECT ON ALL TABLES IN SCHEMA witstats_api TO witstats_user;
 GRANT SELECT ON ALL TABLES IN SCHEMA witstats_app TO witstats_user;
-GRANT SELECT ON TABLE hive.witstats_app_accounts TO witstats_user;
 
 -- GET /
 CREATE OR REPLACE FUNCTION witstats_api.home()
