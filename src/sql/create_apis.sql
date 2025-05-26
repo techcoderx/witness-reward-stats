@@ -35,6 +35,9 @@ DECLARE
 	_producer_id INTEGER;
 BEGIN
 	SELECT id INTO _producer_id FROM hive.irreversible_accounts_view WHERE name = producer;
+  IF _producer_id IS NULL THEN
+    RAISE EXCEPTION 'Account % does not exist', producer;
+  END IF;
 	RETURN jsonb_build_object(
 		'total_vests', SUM(reward_vests),
 		'total_hive', SUM(reward_hive),
@@ -59,6 +62,9 @@ DECLARE
   _end TIMESTAMP = DATE_TRUNC('day', COALESCE(end_date, NOW()::TIMESTAMP));
 BEGIN
 	SELECT id INTO _producer_id FROM hive.irreversible_accounts_view WHERE name = producer;
+  IF _producer_id IS NULL THEN
+    RAISE EXCEPTION 'Account % does not exist', producer;
+  END IF;
 	IF granularity = 'daily' THEN
     RETURN (
       WITH history AS (
