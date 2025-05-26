@@ -1,6 +1,6 @@
 services:
   witstats-install:
-    image: witness-reward-stats:${WITSTATS_HAF_VERSION:-${HIVE_API_NODE_VERSION}}
+    image: witreward-stats:${WITSTATS_HAF_VERSION:-${HIVE_API_NODE_VERSION}}
     profiles:
       - apps
       - witstats
@@ -14,7 +14,7 @@ services:
       haf:
         condition: service_healthy
   witstats-uninstall:
-    image: witness-reward-stats:${WITSTATS_HAF_VERSION:-${HIVE_API_NODE_VERSION}}
+    image: witreward-stats:${WITSTATS_HAF_VERSION:-${HIVE_API_NODE_VERSION}}
     profiles:
       - witstats-uninstall
     environment:
@@ -27,7 +27,7 @@ services:
       haf:
         condition: service_healthy
   witstats-block-processing:
-    image: witness-reward-stats:${WITSTATS_HAF_VERSION:-${HIVE_API_NODE_VERSION}}
+    image: witreward-stats:${WITSTATS_HAF_VERSION:-${HIVE_API_NODE_VERSION}}
     profiles:
       - apps
       - witstats
@@ -74,6 +74,28 @@ services:
       witstats-install:
         condition: service_completed_successfully
       witstats-block-processing:
+        condition: service_healthy
+      haf:
+        condition: service_healthy
+  witstats-postgrest-rewriter:
+    image: witreward-stats-rewriter:${WITSTATS_HAF_VERSION:-${HIVE_API_NODE_VERSION}}
+    profiles:
+      - apps
+      - witstats
+    networks:
+      haf-network:
+    healthcheck:
+      test: ["CMD-SHELL", "wget --timeout=2 -nv -t1 --spider 127.0.0.1:3001/witreward-api || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+      start_period: 1m
+    depends_on:
+      witstats-install:
+        condition: service_completed_successfully
+      witstats-block-processing:
+        condition: service_healthy
+      witstats-postgrest:
         condition: service_healthy
       haf:
         condition: service_healthy

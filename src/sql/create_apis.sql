@@ -20,15 +20,6 @@ CREATE TYPE witstats_app.granularity AS ENUM (
   'yearly'
 );
 
--- GET /
-CREATE OR REPLACE FUNCTION witstats_api.home()
-RETURNS INTEGER AS $function$
-BEGIN
-	RETURN hive.app_get_current_block_num('witstats_app');
-END
-$function$
-LANGUAGE plpgsql STABLE;
-
 CREATE OR REPLACE FUNCTION witstats_api.witness_reward_stats(producer VARCHAR)
 RETURNS jsonb AS $function$
 DECLARE
@@ -104,4 +95,12 @@ BEGIN
     );
   END IF;
 END $function$
+LANGUAGE plpgsql STABLE;
+
+CREATE OR REPLACE FUNCTION witstats_api.last_synced_block()
+RETURNS INTEGER AS $function$
+BEGIN
+	RETURN hive.app_get_current_block_num('witstats_app');
+END
+$function$
 LANGUAGE plpgsql STABLE;
