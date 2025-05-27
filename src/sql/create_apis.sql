@@ -48,50 +48,117 @@ CREATE OR REPLACE FUNCTION witstats_api.witness_reward_history(
 )
 RETURNS jsonb AS $function$
 DECLARE
-	_producer_id INTEGER;
-  _start TIMESTAMP = DATE_TRUNC('day', COALESCE(start_date, '1970-01-01'::TIMESTAMP));
-  _end TIMESTAMP = DATE_TRUNC('day', COALESCE(end_date, NOW()::TIMESTAMP));
+    _producer_id INTEGER;
+    _min_date TIMESTAMP;
+    _max_date TIMESTAMP;
+    _start TIMESTAMP;
+    _end TIMESTAMP;
 BEGIN
 	SELECT id INTO _producer_id FROM hive.irreversible_accounts_view WHERE name = producer;
   IF _producer_id IS NULL THEN
     RAISE EXCEPTION 'Account % does not exist', producer;
   END IF;
-	IF granularity = 'daily' THEN
+
+  SELECT MIN(date) INTO _min_date FROM witstats_app.daily_stats WHERE producer_id = _producer_id;
+  _start := DATE_TRUNC('day', COALESCE(start_date, _min_date));
+  SELECT MAX(date) INTO _max_date FROM witstats_app.daily_stats WHERE producer_id = _producer_id;
+  _end := DATE_TRUNC('day', COALESCE(end_date, _max_date));
+
+  IF granularity = 'daily' THEN
     RETURN (
-      WITH history AS (
-        SELECT date, reward_vests, reward_hive, block_count
-        FROM witstats_app.daily_stats
-        WHERE producer_id = _producer_id AND date >= _start AND date <= _end
-        ORDER BY
-          (CASE WHEN direction = 'desc' THEN date ELSE NULL END) DESC,
-          (CASE WHEN direction = 'asc' THEN date ELSE NULL END) ASC
-      )
+      WITH 
+        dates AS (
+          SELECT generate_date::date AS date 
+          FROM generate_series(
+            _start::date, 
+            _end::date, 
+            '1 day'::interval
+          ) AS generate_date
+        ),
+        history AS (
+          SELECT 
+            d.date,
+            COALESCE(ds.reward_vests, 0) AS reward_vests,
+            COALESCE(ds.reward_hive, 0) AS reward_hive,
+            COALESCE(ds.block_count, 0) AS block_count
+          FROM dates d
+          LEFT JOIN witstats_app.daily_stats ds 
+            ON ds.date = d.date 
+            AND ds.producer_id = _producer_id
+          ORDER BY 
+            CASE WHEN direction = 'desc' THEN d.date END DESC,
+            CASE WHEN direction = 'asc' THEN d.date END ASC
+        )
       SELECT jsonb_agg(jsonb_build_object(
         'date', date,
         'vests', reward_vests,
         'hive', reward_hive,
         'count', block_count
-      ))
-      FROM history
+      )) FROM history
     );
   ELSE
     RETURN (
-      WITH history AS (
-        SELECT DATE_TRUNC((CASE WHEN granularity = 'monthly' THEN 'month' ELSE 'year' END), date) d, SUM(reward_vests) reward_vests, SUM(reward_hive) reward_hive, SUM(block_count) block_count
-        FROM witstats_app.daily_stats
-        WHERE producer_id = _producer_id AND date >= _start AND date <= _end
-        GROUP BY DATE_TRUNC((CASE WHEN granularity = 'monthly' THEN 'month' ELSE 'year' END), date)
-        ORDER BY
-          (CASE WHEN direction = 'desc' THEN DATE_TRUNC((CASE WHEN granularity = 'monthly' THEN 'month' ELSE 'year' END), date) END) DESC,
-          (CASE WHEN direction = 'asc' THEN DATE_TRUNC((CASE WHEN granularity = 'monthly' THEN 'month' ELSE 'year' END), date) END) ASC
-      )
+      WITH 
+        dates AS (
+          SELECT generate_date AS period 
+          FROM generate_series(
+            DATE_TRUNC(
+              CASE granularity 
+                WHEN 'monthly' THEN 'month'
+                WHEN 'yearly' THEN 'year'
+              END,
+              _start
+            ),
+            DATE_TRUNC(
+              CASE granularity 
+                WHEN 'monthly' THEN 'month'
+                WHEN 'yearly' THEN 'year'
+              END,
+              _end
+            ),
+            (CASE 
+              WHEN granularity = 'monthly' THEN '1 month'::interval 
+              ELSE '1 year'::interval 
+            END)
+          ) AS generate_date
+        ),
+        aggregated_data AS (
+          SELECT 
+            DATE_TRUNC(
+              CASE granularity 
+                WHEN 'monthly' THEN 'month'
+                WHEN 'yearly' THEN 'year'
+              END,
+              date
+            ) AS period,
+            SUM(reward_vests) AS reward_vests,
+            SUM(reward_hive) AS reward_hive,
+            SUM(block_count) AS block_count
+          FROM witstats_app.daily_stats
+          WHERE producer_id = _producer_id 
+            AND date >= _start 
+            AND date <= _end
+          GROUP BY period
+        ),
+        history AS (
+          SELECT 
+            d.period,
+            COALESCE(ad.reward_vests, 0) AS reward_vests,
+            COALESCE(ad.reward_hive, 0) AS reward_hive,
+            COALESCE(ad.block_count, 0) AS block_count
+          FROM dates d
+          LEFT JOIN aggregated_data ad 
+            ON ad.period = d.period
+          ORDER BY 
+            CASE WHEN direction = 'desc' THEN d.period END DESC,
+            CASE WHEN direction = 'asc' THEN d.period END ASC
+        )
       SELECT jsonb_agg(jsonb_build_object(
-        'date', d,
+        'date', period::date,
         'vests', reward_vests,
         'hive', reward_hive,
         'count', block_count
-      ))
-      FROM history
+      )) FROM history
     );
   END IF;
 END $function$

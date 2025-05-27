@@ -6,20 +6,8 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-4Q6Gf2aSP4eDXB8Miphtr37CMZZQ5oXLH2yaXMJ2w8e2ZtHTl7GptT4jmndRuHDT" crossorigin="anonymous">
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/js/bootstrap.bundle.min.js" integrity="sha384-j1CDi7MgGQ12Z7Qab0qlWQ/Qqz24Gc6BM0thvEMVjHnfYGF0rmFCozFSxQBxwHKO" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.9/dist/chart.umd.min.js" crossorigin="anonymous"></script>
-  <style>
-    .chart-container {
-      position: relative;
-      width: 100%;
-      height: 0;
-    }
-    .chart-container canvas {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-    }
-  </style>
+  <script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.2.0/dist/chartjs-plugin-zoom.min.js"></script>
 </head>
 <body class="p-3 p-sm-4 p-md-5" data-bs-theme="dark">
   <h1>Witness Reward Stats</h1>
@@ -83,19 +71,20 @@
     <div class="tab-content">
       <div id="hiveChart" class="tab-pane fade show active">
         <div class="chart-container">
-          <canvas id="hiveChartCanvas" class="py-3"></canvas>
+          <canvas id="hiveChartCanvas" class="position-relative w-100 h-75 py-3"></canvas>
         </div>
       </div>
       <div id="vestsChart" class="tab-pane fade">
         <div class="chart-container">
-          <canvas id="vestsChartCanvas" class="py-3"></canvas>
+          <canvas id="vestsChartCanvas" class="position-relative w-100 h-75 py-3"></canvas>
         </div>
       </div>
       <div id="blocksChart" class="tab-pane fade">
         <div class="chart-container">
-          <canvas id="blocksChartCanvas" class="py-3"></canvas>
+          <canvas id="blocksChartCanvas" class="position-relative w-100 h-75 py-3"></canvas>
         </div>
       </div>
+      <button type="button" class="btn btn-secondary" id="reset-zoom-btn">Reset Zoom</button>
     </div>
   </div>
 </body>
@@ -154,6 +143,14 @@
             plugins: {
               legend: {
                 display: false
+              },
+              zoom: {
+                zoom: {
+                  drag: {
+                    enabled: true
+                  },
+                  mode: 'x'
+                }
               }
             }
           }
@@ -163,7 +160,7 @@
 
       createChart('hiveChartCanvas', 'hive', 'HIVE', '#dc3545');
       createChart('vestsChartCanvas', 'vests', 'VESTS', '#0d6efd');
-      createChart('blocksChartCanvas', 'count', 'Blocks Produced', '#198754');
+      createChart('blocksChartCanvas', 'count', 'Blocks Produced', '#0dcaf0');
     } catch (error) {
       document.getElementById('error-message').textContent = error.message;
     }
@@ -222,5 +219,18 @@
       }
     });
   });
+
+  document.getElementById('reset-zoom-btn').onclick = (evt) => {
+    const charts = [
+      document.getElementById('hiveChartCanvas')._chart,
+      document.getElementById('vestsChartCanvas')._chart,
+      document.getElementById('blocksChartCanvas')._chart
+    ];
+    charts.forEach(chart => {
+      if (chart) {
+        chart.resetZoom();
+      }
+    });
+  };
 </script>
 </html>
