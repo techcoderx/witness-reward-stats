@@ -33,7 +33,7 @@
   <!-- Error message placeholder -->
   <div class="alert alert-danger d-none" id="error-message"></div>
   <!-- Predefined stats-container with hidden content -->
-  <div id="stats-container" class="my-4 d-none">
+  <div id="stats-container" class="my-4">
     <h3 class="mb-3">Lifetime Rewards</h3>
     <div class="row row-cols-1 row-cols-lg-3 g-4" id="stats-content">
       <div class="col">
@@ -171,7 +171,6 @@
     try {
       document.getElementById('error-message').classList.add('d-none');
       document.getElementById('error-message').textContent = '';
-      document.getElementById('stats-container').classList.remove('d-none');
 
       const response = await fetch(`https://techcoderx.com/witreward-api/totals/${username}`);
       if (!response.ok) {
@@ -180,15 +179,14 @@
       }
 
       const data = await response.json();
-      const hive = (data.total_hive / 1000).toFixed(2);
-      const vests = (data.total_vests / 1_000_000).toFixed(2);
+      const hive = (data.total_hive / 1000).toFixed(3)
+      const vests = Math.round(data.total_vests / 1_000_000)
       const blocks = data.total_blocks;
 
       document.getElementById('hive-value').textContent = thousandSeperator(hive);
       document.getElementById('vests-value').textContent = thousandSeperator(vests);
       document.getElementById('blocks-value').textContent = thousandSeperator(blocks);
     } catch (error) {
-      document.getElementById('stats-content').classList.add('d-none');
       document.getElementById('error-message').classList.remove('d-none');
       document.getElementById('error-message').textContent = error.message;
     }
