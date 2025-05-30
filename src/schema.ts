@@ -9,9 +9,6 @@ import { FKS_TYPE, INDEXES_TYPE, Ordering } from './schema_types.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
-// tables to be registered for forking HAF app
-const HAF_TABLES: string[] = []
-
 // FK name: FKS_TYPE
 const HAF_FKS: FKS_TYPE = {}
 
@@ -33,13 +30,6 @@ const schema = {
 
         // fill with initial values
         let startBlock = Math.max(START_BLOCK-1,0)
-        await db.client.query('START TRANSACTION;')
-        await db.client.query(`INSERT INTO ${SCHEMA_NAME}.state(last_processed_block, db_version) VALUES($1, $2);`,[startBlock,DB_VERSION])
-        await db.client.query('COMMIT;')
-
-        // inheritance for forking app
-        for (let t in HAF_TABLES)
-            await db.client.query(`ALTER TABLE ${SCHEMA_NAME}.${HAF_TABLES[t]} INHERIT hive.${SCHEMA_NAME};`)
 
         // detach app context
         await context.detach()
@@ -52,7 +42,6 @@ const schema = {
             await db.client.query('SELECT hive.app_state_providers_update($1,$2,$3);',[0,startBlock,APP_CONTEXT])
             logger.info('State providers updated in',(new Date().getTime()-start),'ms')
         }
-        await db.client.query(`UPDATE ${SCHEMA_NAME}.state SET last_processed_block=$1;`,[startBlock])
         await db.client.query(`SELECT hive.app_set_current_block_num($1,$2);`,[APP_CONTEXT,startBlock])
         await db.client.query('COMMIT;')
         logger.info('Set last processed block to #'+(startBlock))

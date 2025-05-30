@@ -49,7 +49,6 @@ const sync = {
         await db.client.query('START TRANSACTION;')
         await db.client.query('SELECT hive.app_state_providers_update($1,$2,$3);',[firstBlock,lastBlock,APP_CONTEXT])
         await db.client.query(`SELECT ${SCHEMA_NAME}.process_range($1,$2);`,[firstBlock,lastBlock])
-        await db.client.query(`UPDATE ${SCHEMA_NAME}.state SET last_processed_block=$1;`,[lastBlock])
         await db.client.query(`SELECT hive.app_set_current_block_num($1,$2);`,[APP_CONTEXT,lastBlock])
         await db.client.query('COMMIT;')
         let timeTaken = (new Date().getTime()-start)/1000
@@ -85,7 +84,6 @@ const sync = {
         let start = new Date().getTime()
         await db.client.query('SELECT hive.app_state_providers_update($1,$2,$3);',[nextBlock,nextBlock,APP_CONTEXT])
         await db.client.query(`SELECT ${SCHEMA_NAME}.process_range($1,$2);`,[nextBlock,nextBlock])
-        await db.client.query(`UPDATE ${SCHEMA_NAME}.state SET last_processed_block=$1;`,[nextBlock])
         await db.client.query('COMMIT;')
         let timeTakenMs = new Date().getTime()-start
         logger.info('Live Sync - Block #'+nextBlock+' - '+timeTakenMs+'ms')
