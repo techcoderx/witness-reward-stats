@@ -47,7 +47,6 @@ const sync = {
         if (sync.terminating) return sync.close()
         let start = new Date().getTime()
         await db.client.query('START TRANSACTION;')
-        await db.client.query('SELECT hive.app_state_providers_update($1,$2,$3);',[firstBlock,lastBlock,APP_CONTEXT])
         await db.client.query(`SELECT ${SCHEMA_NAME}.process_range($1,$2);`,[firstBlock,lastBlock])
         await db.client.query(`SELECT hive.app_set_current_block_num($1,$2);`,[APP_CONTEXT,lastBlock])
         await db.client.query('COMMIT;')
@@ -82,7 +81,6 @@ const sync = {
         }
 
         let start = new Date().getTime()
-        await db.client.query('SELECT hive.app_state_providers_update($1,$2,$3);',[nextBlock,nextBlock,APP_CONTEXT])
         await db.client.query(`SELECT ${SCHEMA_NAME}.process_range($1,$2);`,[nextBlock,nextBlock])
         await db.client.query('COMMIT;')
         let timeTakenMs = new Date().getTime()-start

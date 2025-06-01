@@ -1,7 +1,7 @@
 import * as fs from 'fs'
 import { dirname } from 'path'
 import { fileURLToPath } from 'url'
-import { START_BLOCK, DB_VERSION, APP_CONTEXT, SCHEMA_NAME } from './constants.js'
+import { START_BLOCK, APP_CONTEXT, SCHEMA_NAME } from './constants.js'
 import db from './db.js'
 import context from './context.js'
 import logger from './logger.js'
@@ -36,12 +36,6 @@ const schema = {
 
         // start block
         await db.client.query('START TRANSACTION;')
-        if (startBlock > 0) {
-            logger.info('Updating state providers to starting block...')
-            let start = new Date().getTime()
-            await db.client.query('SELECT hive.app_state_providers_update($1,$2,$3);',[0,startBlock,APP_CONTEXT])
-            logger.info('State providers updated in',(new Date().getTime()-start),'ms')
-        }
         await db.client.query(`SELECT hive.app_set_current_block_num($1,$2);`,[APP_CONTEXT,startBlock])
         await db.client.query('COMMIT;')
         logger.info('Set last processed block to #'+(startBlock))
