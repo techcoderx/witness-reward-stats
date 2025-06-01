@@ -27,24 +27,24 @@ CREATE OR REPLACE FUNCTION witstats_api.witness_reward_stats(
 )
 RETURNS jsonb AS $function$
 DECLARE
-	_producer_id INTEGER;
+  _producer_id INTEGER;
   _start TIMESTAMP = COALESCE(start_date, '2016-03-23'::TIMESTAMP);
   _end TIMESTAMP = COALESCE(end_date, NOW()::TIMESTAMP);
 BEGIN
   IF _start > _end THEN
     RAISE EXCEPTION 'start_date cannot be later than end_date';
   END IF;
-	SELECT id INTO _producer_id FROM hive.irreversible_accounts_view WHERE name = producer;
+  SELECT id INTO _producer_id FROM hive.irreversible_accounts_view WHERE name = producer;
   IF _producer_id IS NULL THEN
     RAISE EXCEPTION 'Account % does not exist', producer;
   END IF;
-	RETURN jsonb_build_object(
-		'total_vests', SUM(reward_vests),
-		'total_hive', SUM(reward_hive),
-		'total_blocks', SUM(block_count)
-	)
-	FROM witstats_app.daily_stats
-	WHERE producer_id = _producer_id AND date >= _start AND date <= _end;
+  RETURN jsonb_build_object(
+    'total_vests', SUM(reward_vests),
+    'total_hive', SUM(reward_hive),
+    'total_blocks', SUM(block_count)
+  )
+  FROM witstats_app.daily_stats
+  WHERE producer_id = _producer_id AND date >= _start AND date <= _end;
 END $function$
 LANGUAGE plpgsql STABLE;
 
@@ -63,7 +63,7 @@ DECLARE
     _start TIMESTAMP;
     _end TIMESTAMP;
 BEGIN
-	SELECT id INTO _producer_id FROM hive.irreversible_accounts_view WHERE name = producer;
+  SELECT id INTO _producer_id FROM hive.irreversible_accounts_view WHERE name = producer;
   IF _producer_id IS NULL THEN
     RAISE EXCEPTION 'Account % does not exist', producer;
   END IF;
@@ -176,7 +176,7 @@ LANGUAGE plpgsql STABLE;
 CREATE OR REPLACE FUNCTION witstats_api.last_synced_block()
 RETURNS INTEGER AS $function$
 BEGIN
-	RETURN hive.app_get_current_block_num('witstats_app');
+  RETURN hive.app_get_current_block_num('witstats_app');
 END
 $function$
 LANGUAGE plpgsql STABLE;
