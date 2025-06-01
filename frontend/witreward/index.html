@@ -8,6 +8,8 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.9/dist/chart.umd.min.js" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.2.0/dist/chartjs-plugin-zoom.min.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 </head>
 <body class="p-3 p-sm-4 p-md-5" data-bs-theme="dark">
   <h1>Witness Reward Stats</h1>
@@ -27,6 +29,20 @@
       </select>
     </div>
     <div class="col-12">
+      <select class="form-select" aria-label="Range selection" id="range-selection">
+        <option value="lifetime" selected>Lifetime</option>
+        <option value="custom">Custom range</option>
+      </select>
+    </div>
+    <div class="col-12 d-none" id="start-date-select">
+      <label class="visually-hidden" for="start-date">Start Date</label>
+      <input type="text" class="form-control" id="start-date" placeholder="Start Date">
+    </div>
+    <div class="col-12 d-none" id="end-date-select">
+      <label class="visually-hidden" for="end-date">End Date</label>
+      <input type="text" class="form-control" id="end-date" placeholder="End Date">
+    </div>
+    <div class="col-12">
       <button type="submit" class="btn btn-danger" id="submit-btn">Submit</button>
     </div>
   </form>
@@ -34,7 +50,6 @@
   <div class="alert alert-danger d-none" id="error-message"></div>
   <!-- Predefined stats-container with hidden content -->
   <div id="stats-container" class="my-4">
-    <h3 class="mb-3">Lifetime Rewards</h3>
     <div class="row row-cols-1 row-cols-lg-3 g-4" id="stats-content">
       <div class="col">
         <div class="card border-danger">
@@ -95,12 +110,25 @@
     return num_parts.join('.');
   };
 
+  const rangeQueryParams = () => {
+    if (document.getElementById('range-selection').value === 'custom') {
+      let result = []
+      if (document.getElementById('start-date').value)
+        result.push(`start_date=${document.getElementById('start-date').value}`)
+      if (document.getElementById('end-date').value)
+        result.push(`end_date=${document.getElementById('end-date').value}`)
+      return result.join('&')
+    } else
+      return ''
+  }
+
   const loadGraphs = async () => {
     const username = document.getElementById('username').value;
     const granularity = document.getElementById('granularity').value;
 
     try {
-      const response = await fetch(`https://techcoderx.com/witreward-api/history/${username}?granularity=${granularity}`);
+      const dateRange = rangeQueryParams() ? `&${rangeQueryParams()}` : ''
+      const response = await fetch(`https://techcoderx.com/witreward-api/history/${username}?granularity=${granularity}${dateRange}`);
       if (!response.ok) throw new Error('Failed to fetch history data');
       const data = await response.json();
 
@@ -172,7 +200,8 @@
       document.getElementById('error-message').classList.add('d-none');
       document.getElementById('error-message').textContent = '';
 
-      const response = await fetch(`https://techcoderx.com/witreward-api/totals/${username}`);
+      const dateRange = rangeQueryParams() ? `?${rangeQueryParams()}` : ''
+      const response = await fetch(`https://techcoderx.com/witreward-api/totals/${username}${dateRange}`);
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.message || 'Request failed');
@@ -206,6 +235,20 @@
   document.getElementById('username').value = urlParams.get('user') || 'techcoderx';
   loadStats();
   loadGraphs();
+
+  // Initialize Flatpickr date pickers without time
+  flatpickr("#start-date", { enableTime: false, dateFormat: 'Y-m-d' });
+  flatpickr("#end-date", { enableTime: false, dateFormat: 'Y-m-d' });
+
+  document.getElementById('range-selection').onchange = () => {
+    if (document.getElementById('range-selection').value === 'custom') {
+      document.getElementById('start-date-select').classList.remove('d-none')
+      document.getElementById('end-date-select').classList.remove('d-none')
+    } else {
+      document.getElementById('start-date-select').classList.add('d-none')
+      document.getElementById('end-date-select').classList.add('d-none')
+    }
+  }
 
   // Add event listener to handle tab resizes
   document.querySelectorAll('[data-bs-toggle="tab"]').forEach(tab => {

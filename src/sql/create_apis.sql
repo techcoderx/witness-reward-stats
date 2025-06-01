@@ -57,11 +57,11 @@ CREATE OR REPLACE FUNCTION witstats_api.witness_reward_history(
 )
 RETURNS jsonb AS $function$
 DECLARE
-    _producer_id INTEGER;
-    _min_date TIMESTAMP;
-    _max_date TIMESTAMP;
-    _start TIMESTAMP;
-    _end TIMESTAMP;
+  _producer_id INTEGER;
+  _min_date TIMESTAMP;
+  _max_date TIMESTAMP;
+  _start TIMESTAMP;
+  _end TIMESTAMP;
 BEGIN
   SELECT id INTO _producer_id FROM hive.irreversible_accounts_view WHERE name = producer;
   IF _producer_id IS NULL THEN
@@ -72,6 +72,10 @@ BEGIN
   _start := DATE_TRUNC('day', COALESCE(start_date, _min_date));
   SELECT date INTO _max_date FROM witstats_app.daily_stats WHERE producer_id = _producer_id ORDER BY date DESC LIMIT 1;
   _end := DATE_TRUNC('day', COALESCE(end_date, _max_date));
+
+  IF _start > _end THEN
+    RAISE EXCEPTION 'start_date cannot be later than end_date';
+  END IF;
 
   IF granularity = 'daily' THEN
     RETURN (
