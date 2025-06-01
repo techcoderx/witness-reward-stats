@@ -20,11 +20,20 @@ CREATE TYPE witstats_app.granularity AS ENUM (
   'yearly'
 );
 
-CREATE OR REPLACE FUNCTION witstats_api.witness_reward_stats(producer VARCHAR)
+CREATE OR REPLACE FUNCTION witstats_api.witness_reward_stats(
+  producer VARCHAR,
+  start_date TIMESTAMP = NULL,
+  end_date TIMESTAMP = NULL
+)
 RETURNS jsonb AS $function$
 DECLARE
 	_producer_id INTEGER;
+  _start TIMESTAMP = COALESCE(start_date, '2016-03-23'::TIMESTAMP);
+  _end TIMESTAMP = COALESCE(end_date, NOW()::TIMESTAMP);
 BEGIN
+  IF _start > _end THEN
+    RAISE EXCEPTION 'start_date cannot be later than end_date';
+  END IF;
 	SELECT id INTO _producer_id FROM hive.irreversible_accounts_view WHERE name = producer;
   IF _producer_id IS NULL THEN
     RAISE EXCEPTION 'Account % does not exist', producer;
@@ -35,7 +44,7 @@ BEGIN
 		'total_blocks', SUM(block_count)
 	)
 	FROM witstats_app.daily_stats
-	WHERE producer_id = _producer_id;
+	WHERE producer_id = _producer_id AND date >= _start AND date <= _end;
 END $function$
 LANGUAGE plpgsql STABLE;
 
@@ -59,9 +68,9 @@ BEGIN
     RAISE EXCEPTION 'Account % does not exist', producer;
   END IF;
 
-  SELECT MIN(date) INTO _min_date FROM witstats_app.daily_stats WHERE producer_id = _producer_id;
+  SELECT date INTO _min_date FROM witstats_app.daily_stats WHERE producer_id = _producer_id ORDER BY date ASC LIMIT 1;
   _start := DATE_TRUNC('day', COALESCE(start_date, _min_date));
-  SELECT MAX(date) INTO _max_date FROM witstats_app.daily_stats WHERE producer_id = _producer_id;
+  SELECT date INTO _max_date FROM witstats_app.daily_stats WHERE producer_id = _producer_id ORDER BY date DESC LIMIT 1;
   _end := DATE_TRUNC('day', COALESCE(end_date, _max_date));
 
   IF granularity = 'daily' THEN
